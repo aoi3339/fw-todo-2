@@ -2,9 +2,11 @@ services:
   db:
     image: mysql:8.0
     container_name: fw2-mysql
+    command: --default-time-zone=+09:00
     environment:
       MYSQL_DATABASE: todoapp
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Tokyo
     ports:
       - "3307:3306"
     volumes:
