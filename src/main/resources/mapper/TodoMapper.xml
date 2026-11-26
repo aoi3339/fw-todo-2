@@ -46,17 +46,28 @@
         <include refid="listFilters" />
     </select>
 
-    <select id="searchPage" resultType="com.example.todoapp.Todo">
-        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
-        FROM todos
-        <include refid="listFilters" />
+    <sql id="listOrder">
         ORDER BY due_date
         <choose>
             <when test="order == 'desc'">DESC</when>
             <otherwise>ASC</otherwise>
         </choose>
         , id ASC
+    </sql>
+
+    <select id="searchPage" resultType="com.example.todoapp.Todo">
+        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
+        FROM todos
+        <include refid="listFilters" />
+        <include refid="listOrder" />
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="searchForExport" resultType="com.example.todoapp.Todo">
+        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
+        FROM todos
+        <include refid="listFilters" />
+        <include refid="listOrder" />
     </select>
 
     <select id="findById" resultType="com.example.todoapp.Todo">
@@ -80,6 +91,12 @@
             due_date = #{dueDate},
             completed = #{completed}
         WHERE id = #{id}
+    </update>
+
+    <update id="complete">
+        UPDATE todos
+        SET completed = true
+        WHERE id = #{id} AND completed = false
     </update>
 
     <delete id="deleteById">

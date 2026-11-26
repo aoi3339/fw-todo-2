@@ -26,11 +26,18 @@ public interface TodoMapper {
             @Param("limit") int limit,
             @Param("offset") long offset);
 
+    List<Todo> searchForExport(@Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("order") String order,
+            @Param("showCompleted") boolean showCompleted);
+
     Todo findById(Long id);
 
     void insert(Todo todo);
 
     void update(Todo todo);
+
+    int complete(Long id);
 
     void deleteById(Long id);
 }

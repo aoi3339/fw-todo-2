@@ -46,6 +46,10 @@ body {
     background: #fee2e2;
 }
 
+.todo-table tr[data-completed="true"] {
+    background: #f1f5f9;
+}
+
 .todo-table .priority-mark {
     color: #b91c1c;
     margin-left: 4px;
@@ -163,6 +167,27 @@ body {
 
 .calendar-todo {
     display: block;
+}
+
+.calendar-weather {
+    margin: 4px 0;
+    color: #475569;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.weather-source {
+    color: #475569;
+    font-size: 12px;
+}
+
+.calendar-weather > div {
+    white-space: nowrap;
+}
+
+.weather-icon {
+    font-size: 18px;
+    vertical-align: middle;
 }
 
 .calendar-table {

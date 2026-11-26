@@ -1,6 +1,7 @@
 package com.example.todoapp.api;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -45,6 +48,41 @@ public class TodoApiController {
                 .stream()
                 .map(TodoDto::from)
                 .toList();
+    }
+
+    @GetMapping(value = "/api/todos.csv", produces = "text/csv")
+    public ResponseEntity<byte[]> exportCsv(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String category,
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "false") boolean showCompleted) {
+        StringBuilder csv = new StringBuilder("\uFEFF");
+        appendCsvRow(csv, "やること", "ジャンル", "優先度", "期限", "状態");
+        for (Todo todo : todoService.searchForExport(keyword, category, order, showCompleted)) {
+            appendCsvRow(csv, todo.getTitle(), todo.getCategory(),
+                    todo.getPriority() == 1 ? "高" : (todo.getPriority() == 2 ? "中" : "低"),
+                    todo.getDueDate(), Boolean.TRUE.equals(todo.getCompleted()) ? "完了" : "未完了");
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"todos.csv\"")
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(csv.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void appendCsvRow(StringBuilder csv, Object... values) {
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) {
+                csv.append(',');
+            }
+            String text = values[i] == null ? "" : values[i].toString();
+            String trimmed = text.stripLeading();
+            if ((!trimmed.isEmpty() && "=+-@＝＋－＠".indexOf(trimmed.charAt(0)) >= 0)
+                    || text.startsWith("\t") || text.startsWith("\r") || text.startsWith("\n")) {
+                text = "'" + text;
+            }
+            csv.append('"').append(text.replace("\"", "\"\"")).append('"');
+        }
+        csv.append("\r\n");
     }
 
     @GetMapping("/api/todos/{id}")

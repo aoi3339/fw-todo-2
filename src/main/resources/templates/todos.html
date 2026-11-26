@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>やること一覧</title>
-    <link rel="stylesheet" href="/css/style.css?v=pagination-1">
+    <link rel="stylesheet" href="/css/style.css?v=completed-gray-1">
 </head>
 <body>
     <div class="container">
@@ -42,6 +42,9 @@
         <a class="btn" th:href="@{/todos/new}">新規登録</a>
 
         <a class="btn sub" th:href="@{/calendar}">カレンダーで見る</a>
+        <a class="btn sub"
+            th:href="@{/api/todos.csv(keyword=${keyword}, category=${category}, order=${order}, showCompleted=${showCompleted})}"
+            download="todos.csv">CSVダウンロード</a>
 
         <p th:if="${#lists.isEmpty(todos)}">条件に一致するやることはありません</p>
 
@@ -66,7 +69,19 @@
                         <span class="priority-mark" th:if="${todo.priority == 1}" aria-hidden="true">★</span>
                     </td>
                     <td th:text="${todo.dueDate}">期限</td>
-                    <td th:text="${todo.completed ? '完了' : '未完了'}">状態</td>
+                    <td>
+                        <span th:if="${todo.completed}">完了</span>
+                        <form class="complete-todo" th:unless="${todo.completed}"
+                            th:action="@{/todos/{id}/complete(id=${todo.id})}" method="post">
+                            <input type="hidden" name="keyword" th:value="${keyword}">
+                            <input type="hidden" name="category" th:value="${category}">
+                            <input type="hidden" name="order" th:value="${order}">
+                            <input type="hidden" name="showCompleted" th:value="${showCompleted}">
+                            <input type="hidden" name="page" th:value="${currentPage}">
+                            <button class="btn sub" type="submit"
+                                th:attr="aria-label=${todo.title + 'を完了にする'}">未完了</button>
+                        </form>
+                    </td>
                     <td>
                         <a class="link" th:href="@{/todos/{id}/edit(id=${todo.id})}">編集</a>
                         <a class="link" th:href="@{/todos/{id}/delete(id=${todo.id})}">削除</a>
@@ -85,6 +100,14 @@
         </nav>
     </div>
     <script>
+        for (const form of document.querySelectorAll(".complete-todo")) {
+            form.addEventListener("submit", (event) => {
+                if (!window.confirm("未完了から完了にします。よろしいですか？")) {
+                    event.preventDefault();
+                }
+            });
+        }
+
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 

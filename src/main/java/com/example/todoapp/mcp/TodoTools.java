@@ -2,7 +2,10 @@ package com.example.todoapp.mcp;
 
 import java.time.LocalDate;
 import java.time.DayOfWeek;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -133,6 +136,37 @@ public class TodoTools {
                 .filter(day -> !result.holidays().containsKey(day.toString()))
                 .toList();
     }
+
+    @McpTool(name = "summarize_week", description = "期限が指定期間内のやることを数えて要約する。総件数・ジャンル別件数・期限切れの未完了件数を返す。期間を両方省略すると日本時間の今週（月〜日）を集計する。")
+    public WeekSummary summarizeWeek(
+            @McpToolParam(description = "期間の開始日（yyyy-MM-dd、この日を含む）。これだけ指定すると、この日から7日間。両方省略すると今週。", required = false) String from,
+            @McpToolParam(description = "期間の終了日（yyyy-MM-dd、この日を含む）。これだけ指定すると、この日までの7日間。両方省略すると今週。", required = false) String to) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+        LocalDate fromDate = from == null ? null : LocalDate.parse(from);
+        LocalDate toDate = to == null ? null : LocalDate.parse(to);
+        if (fromDate == null) {
+            fromDate = toDate == null ? today.with(DayOfWeek.MONDAY) : toDate.minusDays(6);
+        }
+        if (toDate == null) {
+            toDate = fromDate.plusDays(6);
+        }
+        if (fromDate.isAfter(toDate)) {
+            throw new IllegalArgumentException("開始日は終了日以前にしてください。");
+        }
+        List<Todo> todos = todoService.search(null, null, "asc", fromDate, toDate);
+        Map<String, Long> categoryCounts = new LinkedHashMap<>();
+        long overdueCount = 0;
+        for (Todo todo : todos) {
+            categoryCounts.merge(todo.getCategory(), 1L, Long::sum);
+            if (todo.getDueDate() != null && todo.getDueDate().isBefore(today)
+                    && !Boolean.TRUE.equals(todo.getCompleted())) {
+                overdueCount++;
+            }
+        }
+        return new WeekSummary(todos.size(), categoryCounts, overdueCount);
+    }
+
+    public record WeekSummary(long totalCount, Map<String, Long> categoryCounts, long overdueCount) { }
 
     private Todo requireTodo(Long id) {
         if (id == null) {

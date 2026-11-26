@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>カレンダー</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=weather-icons-1">
 </head>
 <body>
     <div class="container">
@@ -34,10 +34,15 @@
                     <td class="calendar-day" th:unless="${day == null}" th:each="day : ${week}"
                         th:attr="data-date=${day}">
                         <span th:text="${day.getDayOfMonth()}">1</span>
+                        <div class="calendar-weather" aria-label="天気"></div>
                     </td>
                 </tr>
             </tbody>
         </table>
+        <p class="weather-source">天気：東京（新宿付近）・神奈川（横浜付近）。予報のある日のみ表示。<br>
+            提供：<a href="https://open-meteo.com/">Open-Meteo</a>
+            （<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>）
+        </p>
     </div>
     <script>
         const calendar = document.querySelector(".calendar-table");
@@ -97,8 +102,52 @@
             }
         }
 
+        const weatherSymbols = {
+            "晴れ": "☀️",
+            "晴れ時々くもり": "🌤️",
+            "くもり": "☁️",
+            "霧": "🌫️",
+            "霧雨": "🌧️",
+            "凍る雨": "🧊🌧️",
+            "雨": "🌧️",
+            "雪": "🌨️",
+            "雷雨": "⛈️"
+        };
+
+        async function loadWeather() {
+            try {
+                const res = await fetch(`/api/weather?from=${from}&to=${to}`);
+                if (!res.ok) return;
+                const weather = await res.json();
+                const dateCells = document.querySelectorAll(".calendar-day[data-date]");
+                for (const cell of dateCells) {
+                    const regions = weather[cell.dataset.date];
+                    if (!regions) continue;
+                    const container = cell.querySelector(".calendar-weather");
+                    for (const region of ["東京", "神奈川"]) {
+                        const description = regions[region];
+                        const symbol = weatherSymbols[description];
+                        if (!symbol) continue;
+                        const line = document.createElement("div");
+                        line.textContent = `${region}：`;
+                        const icon = document.createElement("span");
+                        icon.className = "weather-icon";
+                        icon.textContent = symbol;
+                        icon.title = description;
+                        icon.setAttribute("role", "img");
+                        icon.setAttribute("aria-label", description);
+                        line.appendChild(icon);
+                        container.appendChild(line);
+                    }
+                }
+            } catch (error) {
+                // 天気の取得に失敗しても、日付・やること・祝日の表示は続ける。
+            }
+        }
+
         loadTodos();
         loadHolidays();
+        loadWeather();
     </script>
 </body>
 </html>

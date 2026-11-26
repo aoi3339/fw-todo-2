@@ -75,6 +75,24 @@ public class HomeController {
         return "redirect:/todos";
     }
 
+    @PostMapping("/todos/{id}/complete")
+    public String complete(@PathVariable Long id,
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "") String category,
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "false") boolean showCompleted,
+            @RequestParam(defaultValue = "1") int page, RedirectAttributes redirectAttributes) {
+        boolean completed = todoService.complete(id);
+        redirectAttributes.addFlashAttribute("message", completed
+                ? "完了にしました" : "すでに完了しているか、対象が見つかりませんでした");
+        redirectAttributes.addAttribute("keyword", keyword);
+        redirectAttributes.addAttribute("category", category);
+        redirectAttributes.addAttribute("order", order);
+        redirectAttributes.addAttribute("showCompleted", showCompleted);
+        redirectAttributes.addAttribute("page", page);
+        return "redirect:/todos";
+    }
+
     @GetMapping("/todos/{id}/edit")
     public String edit(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         Todo todo = todoService.findById(id);

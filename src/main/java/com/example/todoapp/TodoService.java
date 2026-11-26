@@ -34,6 +34,11 @@ public class TodoService {
         return todoMapper.searchPage(keyword, category, order, showCompleted, limit, offset);
     }
 
+    public List<Todo> searchForExport(String keyword, String category, String order,
+            boolean showCompleted) {
+        return todoMapper.searchForExport(keyword, category, order, showCompleted);
+    }
+
     public Todo findById(Long id) {
         return todoMapper.findById(id);
     }
@@ -46,6 +51,14 @@ public class TodoService {
     public void update(Todo todo) {
         todoMapper.update(todo);
         log.info("編集 id={}", todo.getId());
+    }
+
+    public boolean complete(Long id) {
+        boolean completed = todoMapper.complete(id) > 0;
+        if (completed) {
+            log.info("完了 id={}", id);
+        }
+        return completed;
     }
 
     public void delete(Long id) {
