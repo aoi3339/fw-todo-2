@@ -33,6 +33,16 @@ public interface TodoMapper {
 
     Todo findById(Long id);
 
+    long countTrash(@Param("keyword") String keyword, @Param("category") String category);
+
+    List<Todo> searchTrashPage(@Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("order") String order,
+            @Param("limit") int limit,
+            @Param("offset") long offset);
+
+    int restore(Long id);
+
     void insert(Todo todo);
 
     void update(Todo todo);

@@ -2,11 +2,14 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>編集の確認</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=lavender-sage-app-1">
 </head>
-<body>
+<body class="app-page form-page">
+    <div th:replace="~{fragments/layout :: header('todos')}"></div>
     <div class="container">
+
         <h1 class="page-title">編集の確認</h1>
 
         <p class="confirm-value">やること：<span th:text="${todo.title != null && !todo.title.isEmpty() ? todo.title : '（入力なし）'}"></span></p>

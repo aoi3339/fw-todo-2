@@ -4,11 +4,12 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.todoapp.TodoMapper">
     <select id="search" resultType="com.example.todoapp.Todo">
-        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
+        SELECT id, title, detail, category, priority, due_date, completed, deleted_at, created_at, updated_at
         FROM todos
         <where>
+            deleted_at IS NULL
             <if test="keyword != null and keyword != ''">
-                title LIKE CONCAT('%', #{keyword}, '%')
+                AND title LIKE CONCAT('%', #{keyword}, '%')
             </if>
             <if test="category != null and category != ''">
                 AND category = #{category}
@@ -29,8 +30,9 @@
 
     <sql id="listFilters">
         <where>
+            deleted_at IS NULL
             <if test="keyword != null and keyword != ''">
-                title LIKE CONCAT('%', #{keyword}, '%')
+                AND title LIKE CONCAT('%', #{keyword}, '%')
             </if>
             <if test="category != null and category != ''">
                 AND category = #{category}
@@ -56,7 +58,7 @@
     </sql>
 
     <select id="searchPage" resultType="com.example.todoapp.Todo">
-        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
+        SELECT id, title, detail, category, priority, due_date, completed, deleted_at, created_at, updated_at
         FROM todos
         <include refid="listFilters" />
         <include refid="listOrder" />
@@ -64,17 +66,47 @@
     </select>
 
     <select id="searchForExport" resultType="com.example.todoapp.Todo">
-        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
+        SELECT id, title, detail, category, priority, due_date, completed, deleted_at, created_at, updated_at
         FROM todos
         <include refid="listFilters" />
         <include refid="listOrder" />
     </select>
 
     <select id="findById" resultType="com.example.todoapp.Todo">
-        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
+        SELECT id, title, detail, category, priority, due_date, completed, deleted_at, created_at, updated_at
         FROM todos
-        WHERE id = #{id}
+        WHERE id = #{id} AND deleted_at IS NULL
     </select>
+
+    <sql id="trashFilters">
+        <where>
+            deleted_at IS NOT NULL
+            <if test="keyword != null and keyword != ''">
+                AND title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+        </where>
+    </sql>
+
+    <select id="countTrash" resultType="long">
+        SELECT COUNT(*) FROM todos
+        <include refid="trashFilters" />
+    </select>
+
+    <select id="searchTrashPage" resultType="com.example.todoapp.Todo">
+        SELECT id, title, detail, category, priority, due_date, completed, deleted_at, created_at, updated_at
+        FROM todos
+        <include refid="trashFilters" />
+        <include refid="listOrder" />
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <update id="restore">
+        UPDATE todos SET deleted_at = NULL
+        WHERE id = #{id} AND deleted_at IS NOT NULL
+    </update>
 
     <insert id="insert" parameterType="com.example.todoapp.Todo"
             useGeneratedKeys="true" keyProperty="id">
@@ -90,17 +122,17 @@
             priority = #{priority},
             due_date = #{dueDate},
             completed = #{completed}
-        WHERE id = #{id}
+        WHERE id = #{id} AND deleted_at IS NULL
     </update>
 
     <update id="complete">
         UPDATE todos
         SET completed = true
-        WHERE id = #{id} AND completed = false
+        WHERE id = #{id} AND completed = false AND deleted_at IS NULL
     </update>
 
-    <delete id="deleteById">
-        DELETE FROM todos
-        WHERE id = #{id}
-    </delete>
+    <update id="deleteById">
+        UPDATE todos SET deleted_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
 </mapper>

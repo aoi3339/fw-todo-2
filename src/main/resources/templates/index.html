@@ -4,12 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ToDo</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=lavender-sage-app-1">
 </head>
-<body>
+<body class="app-page home-page">
+    <div th:replace="~{fragments/layout :: header('home')}"></div>
     <div class="container">
+
         <h1 class="page-title" th:text="${pageTitle}">ページタイトル</h1>
-        <p>タスクを管理するアプリです。</p>
+                <p class="home-intro">今日の予定も、これからの目標も。<br>ひとつずつ、自分のペースで進めましょう。</p>
+        <a class="btn" th:href="@{/todos/new}">＋ やることを追加</a>
+        <div class="home-cards">
+            <a class="home-card" th:href="@{/todos}"><span class="home-card-icon" aria-hidden="true">✓</span><h2>やること一覧</h2><p>予定を探して、進み具合を確認。</p><span>一覧を開く →</span></a>
+            <a class="home-card sage" th:href="@{/calendar}"><span class="home-card-icon" aria-hidden="true">▦</span><h2>カレンダー</h2><p>月や週で、予定を見渡す。</p><span>カレンダーを開く →</span></a>
+        </div>
+        <p class="home-note">少しずつ、できたことを増やしていこう。</p>
     </div>
 </body>
 </html>

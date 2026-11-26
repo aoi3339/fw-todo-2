@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初回ログイン設定</title>
+    <link rel="stylesheet" href="/css/style.css?v=lavender-sage-app-1">
+</head>
+<body class="auth-page">
+    <main class="container auth-container">
+        <div th:replace="~{fragments/layout :: authBrand}"></div>
+        <h1 class="page-title">初回ログイン設定</h1>
+        <p>これから使うユーザー名とパスワードを決めてください。設定できるのは最初の1回だけです。</p>
+        <form th:action="@{/setup}" th:object="${setupForm}" method="post">
+            <ul class="error" role="alert" th:if="${#fields.hasAnyErrors()}">
+                <li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li>
+            </ul>
+            <div class="form-row">
+                <label class="form-label" for="username">ユーザー名（空白なし、50文字以内）</label>
+                <input class="form-input" id="username" th:field="*{username}" autocomplete="username" maxlength="50" required autofocus>
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="password">パスワード（8文字以上）</label>
+                <input class="form-input" type="password" id="password" name="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="passwordConfirmation">パスワードをもう一度入力</label>
+                <input class="form-input" type="password" id="passwordConfirmation" name="passwordConfirmation" autocomplete="new-password" minlength="8" maxlength="72" required>
+            </div>
+            <button class="btn" type="submit">設定してログインへ</button>
+        </form>
+    </main>
+</body>
+</html>

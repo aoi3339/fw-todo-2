@@ -27,9 +27,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/todoapp
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TODO_UPLOAD_DIR: /app/uploads
+    volumes:
+      - fw-upload-data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   fw-db-data:
+  fw-upload-data:

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添付ファイル</title>
+    <link rel="stylesheet" href="/css/style.css?v=lavender-sage-app-1">
+</head>
+<body class="app-page form-page">
+    <div th:replace="~{fragments/layout :: header('todos')}"></div>
+    <main class="container">
+
+        <h1 class="page-title">添付ファイル</h1>
+        <p class="attachment-todo-title" th:text="${todo.title}"></p>
+        <p class="flash" role="status" th:if="${attachmentMessage}" th:text="${attachmentMessage}"></p>
+        <p class="error" role="alert" th:if="${attachmentError}" th:text="${attachmentError}"></p>
+        <section class="attachment-panel" aria-labelledby="upload-title">
+            <h2 id="upload-title">ファイルを添付する</h2>
+            <p id="file-help">1回に1ファイル、10MBまで。画像（PNG・JPEG・GIF・WebP）、PDF、テキスト・CSV（UTF-8）、Word・Excel・PowerPoint（docx・xlsx・pptx）に対応しています。</p>
+            <form th:action="@{/todos/{id}/attachments(id=${todo.id})}" method="post" enctype="multipart/form-data">
+                <div class="form-row">
+                    <label class="form-label" for="file">ファイルを選択</label>
+                    <input class="form-input" type="file" id="file" name="file"
+                        accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.csv,.docx,.xlsx,.pptx" aria-describedby="file-help" required>
+                </div>
+                <button class="btn" type="submit">添付する</button>
+            </form>
+        </section>
+        <section class="attachment-panel" aria-labelledby="files-title">
+            <h2 id="files-title">添付済みのファイル</h2>
+            <p th:if="${#lists.isEmpty(attachments)}">添付ファイルはまだありません。</p>
+            <ul class="attachment-list" th:unless="${#lists.isEmpty(attachments)}">
+                <li class="attachment-item" th:each="attachment : ${attachments}">
+                    <div class="attachment-info">
+                        <a class="link attachment-name" th:href="@{/todos/{todoId}/attachments/{id}/download(todoId=${todo.id},id=${attachment.id})}"
+                            th:text="${attachment.originalFilename}"></a>
+                        <span class="attachment-meta" th:text="${#numbers.formatDecimal(attachment.fileSize / 1024.0,1,1) + ' KB ・ ' + #temporals.format(attachment.uploadedAt,'yyyy/MM/dd HH:mm')}"></span>
+                    </div>
+                    <form class="delete-attachment" th:action="@{/todos/{todoId}/attachments/{id}/delete(todoId=${todo.id},id=${attachment.id})}" method="post">
+                        <button class="btn sub" type="submit" th:attr="aria-label=${attachment.originalFilename + 'を削除'}">削除</button>
+                    </form>
+                </li>
+            </ul>
+        </section>
+        <p>予定を「削除済み」にすると添付も開けなくなります。予定を戻すと、添付も再び使えます。</p>
+        <a class="btn sub" th:href="@{/todos/{id}/edit(id=${todo.id})}">予定の編集へ</a>
+        <a class="btn sub" th:href="@{/todos}">一覧へ</a>
+    </main>
+    <script>
+        for (const form of document.querySelectorAll(".delete-attachment")) {
+            form.addEventListener("submit", event => {
+                if (!window.confirm("この添付ファイルを削除します。元に戻せません。よろしいですか？")) {
+                    event.preventDefault();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

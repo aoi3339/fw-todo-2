@@ -4,82 +4,175 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>カレンダー</title>
-    <link rel="stylesheet" href="/css/style.css?v=weather-icons-1">
+    <link rel="preload" href="/fonts/zen-maru-gothic/ZenMaruGothic-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="stylesheet" href="/css/style.css?v=lavender-sage-app-1">
 </head>
-<body>
-    <div class="container">
+<body class="calendar-page">
+    <div class="planner-shell">
+        <aside class="calendar-sidebar" aria-label="メインメニュー">
+            <a class="planner-brand" th:href="@{/calendar}">
+                <span class="planner-flower" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span>日々のやること</span>
+            </a>
+            <nav class="planner-menu">
+                <a class="is-active" th:href="@{/calendar}" aria-current="page">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18"/></svg>カレンダー
+                </a>
+                <a th:href="@{/todos}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>一覧
+                </a>
+                <a th:href="@{/todos(trash=1)}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>削除済み
+                </a>
+            </nav>
+            <div class="planner-botanical" aria-hidden="true">
+                <svg viewBox="0 0 180 220"><path class="botanical-stem" d="M26 204Q85 134 116 30M40 188Q82 161 151 135M63 159Q56 129 48 99"/>
+                    <g class="botanical-leaves"><ellipse cx="59" cy="166" rx="9" ry="27" transform="rotate(-44 59 166)"/><ellipse cx="92" cy="142" rx="9" ry="27" transform="rotate(54 92 142)"/><ellipse cx="102" cy="103" rx="8" ry="24" transform="rotate(48 102 103)"/><ellipse cx="47" cy="116" rx="7" ry="20" transform="rotate(-29 47 116)"/><ellipse cx="132" cy="143" rx="7" ry="23" transform="rotate(57 132 143)"/></g>
+                    <g class="botanical-petals"><ellipse cx="113" cy="34" rx="8" ry="12" transform="rotate(22 113 34)"/><ellipse cx="101" cy="49" rx="8" ry="12" transform="rotate(-25 101 49)"/><ellipse cx="119" cy="53" rx="8" ry="12" transform="rotate(35 119 53)"/><ellipse cx="94" cy="67" rx="8" ry="12" transform="rotate(-32 94 67)"/><ellipse cx="111" cy="74" rx="8" ry="12" transform="rotate(38 111 74)"/><ellipse cx="83" cy="88" rx="8" ry="12" transform="rotate(-33 83 88)"/><ellipse cx="100" cy="94" rx="8" ry="12" transform="rotate(35 100 94)"/></g>
+                </svg>
+                <p>ひとつずつ、自分のペースで。</p>
+            </div>
+            <div th:replace="~{fragments/session :: logout}"></div>
+        </aside>
+    <main class="calendar-main">
         <p id="holiday-unavailable" class="flash" hidden>祝日を取れませんでした</p>
-        <h1 class="page-title" th:text="${year + '年' + month + '月'}">2026年4月</h1>
-
-        <div class="calendar-toolbar">
-            <nav class="calendar-navigation" aria-label="月の移動">
-                <a class="btn sub" th:href="@{/calendar(year=${previousYear}, month=${previousMonth})}">前の月</a>
-                <a class="btn sub" th:href="@{/calendar(year=${nextYear}, month=${nextMonth})}">次の月</a>
+        <p id="todos-unavailable" class="flash" hidden>予定を読み込めませんでした。画面を再読み込みしてください。</p>
+        <header class="calendar-header">
+            <div class="calendar-heading">
+                <p class="planner-eyebrow">MY LITTLE PLANNER</p>
+                <h1 class="calendar-title" th:classappend="${weekView ? 'is-week' : ''}" th:text="${calendarTitle}">2026年4月</h1>
+            </div>
+            <div class="calendar-toolbar">
+                <nav class="calendar-view-switch" aria-label="カレンダーの表示切り替え">
+                    <a th:classappend="${weekView ? '' : 'is-selected'}" aria-label="月表示"
+                        th:attr="aria-current=${weekView ? null : 'page'}"
+                        th:href="@{/calendar(view='month', year=${year}, month=${month}, date=${selectedDate})}">月</a>
+                    <a th:classappend="${weekView ? 'is-selected' : ''}" aria-label="週表示"
+                        th:attr="aria-current=${weekView ? 'page' : null}"
+                        th:href="@{/calendar(view='week', date=${selectedDate})}">週</a>
+                </nav>
+            <nav class="calendar-navigation" aria-label="月の移動" th:unless="${weekView}">
+                <a class="calendar-arrow" aria-label="前の月" th:href="@{/calendar(year=${previousYear}, month=${previousMonth})}">‹</a>
+                <a class="calendar-arrow" aria-label="次の月" th:href="@{/calendar(year=${nextYear}, month=${nextMonth})}">›</a>
+            </nav>
+            <nav class="calendar-navigation" aria-label="週の移動" th:if="${weekView}">
+                <a class="calendar-arrow" aria-label="前の週" th:href="@{/calendar(view='week', date=${previousWeek})}">‹</a>
+                <a class="calendar-arrow" aria-label="次の週" th:href="@{/calendar(view='week', date=${nextWeek})}">›</a>
             </nav>
             <nav class="calendar-actions" aria-label="画面の移動">
-                <a class="btn sub" th:href="@{/todos}">表で見る</a>
-                <a class="btn" th:href="@{/todos/new}">新規登録</a>
+                <a class="btn" th:href="@{/todos/new}"><span aria-hidden="true">＋</span> 予定を追加</a>
             </nav>
         </div>
-
-        <table class="calendar-table" th:attr="data-from=${dataFrom}, data-to=${dataTo}">
+        </header>
+        <p class="calendar-scroll-hint">小さい画面では、カレンダーを横にスクロールできます。</p>
+        <div class="calendar-grid" role="region" aria-label="予定のカレンダー" tabindex="0">
+        <table class="calendar-table" th:classappend="${weekView ? 'is-week' : ''}"
+            th:attr="data-from=${dataFrom}, data-to=${dataTo}, data-view=${weekView ? 'week' : 'month'}">
+            <caption class="visually-hidden" th:text="${calendarTitle}">カレンダー</caption>
             <thead>
                 <tr>
-                    <th th:each="weekday : ${weekdays}" th:text="${weekday}">日</th>
+                    <th scope="col" th:each="weekday : ${weekdays}" th:text="${weekday}">日</th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="week : ${weeks}">
-                    <td class="calendar-day is-empty" th:if="${day == null}" th:each="day : ${week}"></td>
-                    <td class="calendar-day" th:unless="${day == null}" th:each="day : ${week}"
-                        th:attr="data-date=${day}">
-                        <span th:text="${day.getDayOfMonth()}">1</span>
-                        <div class="calendar-weather" aria-label="天気"></div>
-                    </td>
+                    <th:block th:each="day : ${week}">
+                        <td class="calendar-day is-empty" th:if="${day == null}"></td>
+                        <td class="calendar-day" th:unless="${day == null}" th:attr="data-date=${day}">
+                            <div class="calendar-day-header">
+                                <span class="calendar-date" th:text="${weekView ? day.getMonthValue() + '/' + day.getDayOfMonth() : day.getDayOfMonth()}">1</span>
+                                <span class="calendar-holiday-name"></span>
+                            </div>
+                            <div class="calendar-weather" aria-label="天気"></div>
+                        </td>
+                    </th:block>
                 </tr>
             </tbody>
         </table>
+        </div>
+        <ul class="calendar-legend" aria-label="予定タグの色の説明">
+            <li><span class="legend-dot is-lavender" aria-hidden="true"></span>優先度 高</li>
+            <li><span class="legend-dot is-sage" aria-hidden="true"></span>優先度 中・低</li>
+            <li><span class="legend-dot is-peach" aria-hidden="true"></span>期限切れ・未完了</li>
+            <li><span class="legend-dot is-muted" aria-hidden="true"></span>完了</li>
+        </ul>
         <p class="weather-source">天気：東京（新宿付近）・神奈川（横浜付近）。予報のある日のみ表示。<br>
             提供：<a href="https://open-meteo.com/">Open-Meteo</a>
             （<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>）
         </p>
+    </main>
     </div>
     <script>
         const calendar = document.querySelector(".calendar-table");
         const from = calendar.dataset.from;
         const to = calendar.dataset.to;
+        const weekView = calendar.dataset.view === "week";
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        for (const cell of calendar.querySelectorAll(".calendar-day[data-date]")) {
+            const weekday = new Date(`${cell.dataset.date}T00:00:00`).getDay();
+            cell.classList.toggle("is-sunday", weekday === 0);
+            cell.classList.toggle("is-saturday", weekday === 6);
+            cell.classList.toggle("is-today", cell.dataset.date === today);
+        }
 
         async function loadTodos() {
+            try {
             const res = await fetch(`/api/todos?from=${from}&to=${to}`);
+            if (!res.ok) throw new Error("予定を取得できませんでした");
             const todos = await res.json();
-            const now = new Date();
-            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
             const dateCells = document.querySelectorAll(".calendar-day[data-date]");
             for (const cell of dateCells) {
                 const date = cell.dataset.date;
                 const matchingTodos = todos.filter(todo => todo.dueDate === date);
-                for (const todo of matchingTodos.slice(0, 3)) {
+                const visibleTodos = weekView ? matchingTodos : matchingTodos.slice(0, 3);
+                for (const todo of visibleTodos) {
                     const title = document.createElement("a");
                     title.className = "calendar-todo";
                     title.href = `/todos/${todo.id}/edit`;
-                    title.textContent = todo.title;
+                    title.classList.toggle("is-sage", todo.priority !== 1);
+                    const indicator = document.createElement("span");
+                    indicator.className = "calendar-todo-indicator";
+                    indicator.setAttribute("aria-hidden", "true");
+                    const text = document.createElement("span");
+                    text.className = "calendar-todo-title";
+                    text.textContent = todo.title;
+                    title.append(indicator, text);
+                    if (todo.completed) {
+                        title.classList.add("is-completed");
+                        indicator.textContent = "✓";
+                        const status = document.createElement("span");
+                        status.className = "visually-hidden";
+                        status.textContent = "（完了）";
+                        title.appendChild(status);
+                    }
                     if (todo.dueDate < today && !todo.completed) {
-                        title.style.color = "#dc2626";
+                        title.classList.add("is-overdue");
+                        const status = document.createElement("span");
+                        status.className = "calendar-todo-status";
+                        status.textContent = "期限切れ";
+                        title.appendChild(status);
                     }
                     cell.appendChild(title);
                 }
-                const hiddenCount = matchingTodos.length - 3;
+                const hiddenCount = matchingTodos.length - visibleTodos.length;
                 if (hiddenCount > 0) {
                     const more = document.createElement("div");
+                    more.className = "calendar-more";
                     more.textContent = `ほか ${hiddenCount}件`;
                     cell.appendChild(more);
                 }
             }
+            } catch (error) {
+                document.querySelector("#todos-unavailable").hidden = false;
+            }
         }
 
         async function loadHolidays() {
+            try {
             const res = await fetch(`/api/holidays?from=${from}&to=${to}`);
+            if (!res.ok) throw new Error("祝日を取得できませんでした");
             const holidays = await res.json();
 
             if (res.headers.has("X-Holidays-Unavailable")) {
@@ -89,16 +182,15 @@
             const dateCells = document.querySelectorAll(".calendar-day[data-date]");
             for (const cell of dateCells) {
                 const date = cell.dataset.date;
-                const dayOfWeek = new Date(`${date}T00:00:00`).getDay();
 
                 if (Object.prototype.hasOwnProperty.call(holidays, date)) {
                     cell.title = holidays[date];
-                    cell.style.backgroundColor = "#fef3c7";
-                } else if (dayOfWeek === 0) {
-                    cell.style.backgroundColor = "#fce7f3";
-                } else if (dayOfWeek === 6) {
-                    cell.style.backgroundColor = "#dbeafe";
+                    cell.classList.add("is-holiday");
+                    cell.querySelector(".calendar-holiday-name").textContent = holidays[date];
                 }
+            }
+            } catch (error) {
+                document.querySelector("#holiday-unavailable").hidden = false;
             }
         }
 

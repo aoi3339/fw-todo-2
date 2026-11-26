@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>やること一覧</title>
-    <link rel="stylesheet" href="/css/style.css?v=completed-gray-1">
+    <title th:text="${trashView ? '削除済みのやること' : 'やること一覧'}">やること一覧</title>
+    <link rel="stylesheet" href="/css/style.css?v=lavender-sage-app-1">
 </head>
-<body>
+<body class="app-page list-page">
+    <div th:replace="~{fragments/layout :: header(${trashView ? 'trash' : 'todos'})}"></div>
     <div class="container">
-        <h1 class="page-title">やること一覧</h1>
+
+        <h1 class="page-title" th:text="${trashView ? '削除済みのやること' : 'やること一覧'}">やること一覧</h1>
 
         <p class="flash" th:if="${message != null}" th:text="${message}"></p>
 
@@ -30,24 +32,30 @@
             </div>
             <input type="hidden" name="order" th:value="${order}">
             <input type="hidden" name="page" value="1">
-            <label>
+            <input type="hidden" name="trash" value="1" th:if="${trashView}">
+            <label th:unless="${trashView}">
                 <input type="checkbox" name="showCompleted" value="true" th:checked="${showCompleted}">
                 完了したものも表示する
             </label>
             <button class="btn" type="submit">絞り込む</button>
-            <a class="link" th:href="@{/todos(keyword=${keyword}, category=${category}, order='asc', showCompleted=${showCompleted}, page=1)}">期限が近い順</a>
-            <a class="link" th:href="@{/todos(keyword=${keyword}, category=${category}, order='desc', showCompleted=${showCompleted}, page=1)}">期限が遠い順</a>
+            <a class="link" th:href="@{/todos(keyword=${keyword}, category=${category}, order='asc', showCompleted=${showCompleted}, page=1, trash=${trashView ? 1 : 0})}">期限が近い順</a>
+            <a class="link" th:href="@{/todos(keyword=${keyword}, category=${category}, order='desc', showCompleted=${showCompleted}, page=1, trash=${trashView ? 1 : 0})}">期限が遠い順</a>
         </form>
 
-        <a class="btn" th:href="@{/todos/new}">新規登録</a>
+        <div class="page-actions">
+        <a class="btn" th:href="@{/todos/new}" th:unless="${trashView}">新規登録</a>
+        <a class="btn sub" th:href="@{/todos(trash=1)}" th:unless="${trashView}">削除済みを見る</a>
+        <a class="btn sub" th:href="@{/todos}" th:if="${trashView}">一覧へ戻る</a>
 
         <a class="btn sub" th:href="@{/calendar}">カレンダーで見る</a>
-        <a class="btn sub"
+        <a class="btn sub" th:unless="${trashView}"
             th:href="@{/api/todos.csv(keyword=${keyword}, category=${category}, order=${order}, showCompleted=${showCompleted})}"
             download="todos.csv">CSVダウンロード</a>
+        </div>
 
         <p th:if="${#lists.isEmpty(todos)}">条件に一致するやることはありません</p>
 
+        <div class="table-scroll" th:unless="${#lists.isEmpty(todos)}">
         <table class="todo-table" th:unless="${#lists.isEmpty(todos)}">
             <thead>
                 <tr>
@@ -71,7 +79,8 @@
                     <td th:text="${todo.dueDate}">期限</td>
                     <td>
                         <span th:if="${todo.completed}">完了</span>
-                        <form class="complete-todo" th:unless="${todo.completed}"
+                        <span th:if="${trashView and !todo.completed}">未完了</span>
+                        <form class="complete-todo" th:unless="${todo.completed or trashView}"
                             th:action="@{/todos/{id}/complete(id=${todo.id})}" method="post">
                             <input type="hidden" name="keyword" th:value="${keyword}">
                             <input type="hidden" name="category" th:value="${category}">
@@ -83,18 +92,29 @@
                         </form>
                     </td>
                     <td>
-                        <a class="link" th:href="@{/todos/{id}/edit(id=${todo.id})}">編集</a>
-                        <a class="link" th:href="@{/todos/{id}/delete(id=${todo.id})}">削除</a>
+                        <th:block th:unless="${trashView}">
+                            <a class="link" th:href="@{/todos/{id}/edit(id=${todo.id})}">編集</a>
+                            <a class="link" th:href="@{/todos/{id}/attachments(id=${todo.id})}">添付</a>
+                            <a class="link" th:href="@{/todos/{id}/delete(id=${todo.id})}">削除</a>
+                        </th:block>
+                        <form th:if="${trashView}" th:action="@{/todos/{id}/restore(id=${todo.id})}" method="post">
+                            <input type="hidden" name="keyword" th:value="${keyword}">
+                            <input type="hidden" name="category" th:value="${category}">
+                            <input type="hidden" name="order" th:value="${order}">
+                            <input type="hidden" name="page" th:value="${currentPage}">
+                            <button class="btn sub" type="submit">戻す</button>
+                        </form>
                     </td>
                 </tr>
             </tbody>
         </table>
+        </div>
         <nav class="pagination" aria-label="一覧のページ" th:unless="${#lists.isEmpty(todos)}">
             <th:block th:each="pageNumber : ${#numbers.sequence(1, totalPages)}">
                 <span class="page-number is-current" aria-current="page"
                     th:if="${pageNumber == currentPage}" th:text="${pageNumber}">1</span>
                 <a class="page-number" th:unless="${pageNumber == currentPage}"
-                    th:href="@{/todos(keyword=${keyword}, category=${category}, order=${order}, showCompleted=${showCompleted}, page=${pageNumber})}"
+                    th:href="@{/todos(keyword=${keyword}, category=${category}, order=${order}, showCompleted=${showCompleted}, page=${pageNumber}, trash=${trashView ? 1 : 0})}"
                     th:text="${pageNumber}">2</a>
             </th:block>
         </nav>

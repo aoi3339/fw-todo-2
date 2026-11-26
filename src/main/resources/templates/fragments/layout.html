@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <header class="app-header" th:fragment="header(active)">
+        <a class="app-brand" th:href="@{/}">
+            <span class="planner-flower" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span>日々のやること</span>
+        </a>
+        <nav class="app-nav" aria-label="メインメニュー">
+            <a th:href="@{/}" th:classappend="${active == 'home' ? 'is-active' : ''}" th:attr="aria-current=${active == 'home' ? 'page' : null}">TOP</a>
+            <a th:href="@{/todos}" th:classappend="${active == 'todos' ? 'is-active' : ''}" th:attr="aria-current=${active == 'todos' ? 'page' : null}">一覧</a>
+            <a th:href="@{/calendar}">カレンダー</a>
+            <a th:href="@{/todos(trash=1)}" th:classappend="${active == 'trash' ? 'is-active' : ''}" th:attr="aria-current=${active == 'trash' ? 'page' : null}">削除済み</a>
+        </nav>
+        <div th:replace="~{fragments/session :: logout}"></div>
+    </header>
+    <div class="auth-brand" th:fragment="authBrand">
+        <span class="planner-flower" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <p class="planner-eyebrow">MY LITTLE PLANNER</p>
+        <p class="auth-brand-name">日々のやること</p>
+        <p>ひとつずつ、自分のペースで。</p>
+    </div>
+</body>
+</html>

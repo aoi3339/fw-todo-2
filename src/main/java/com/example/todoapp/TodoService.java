@@ -43,6 +43,23 @@ public class TodoService {
         return todoMapper.findById(id);
     }
 
+    public long countTrash(String keyword, String category) {
+        return todoMapper.countTrash(keyword, category);
+    }
+
+    public List<Todo> searchTrashPage(String keyword, String category, String order,
+            int limit, long offset) {
+        return todoMapper.searchTrashPage(keyword, category, order, limit, offset);
+    }
+
+    public boolean restore(Long id) {
+        boolean restored = todoMapper.restore(id) > 0;
+        if (restored) {
+            log.info("復元 id={}", id);
+        }
+        return restored;
+    }
+
     public void create(Todo todo) {
         todoMapper.insert(todo);
         log.info("登録 id={}", todo.getId());
