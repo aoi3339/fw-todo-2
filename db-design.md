@@ -1,87 +1,99 @@
 # ToDoアプリ DB設計書
 
-## 1. この文書の目的
+更新日：2026年11月26日。初期の「todosだけ・ログインなし・行を消す削除」から、現在の実装へ更新しました。根拠は [要件定義書](requirements.md) と `initdb/*.sql`、`src/main/resources/mapper`、各Mapperです。
 
-この文書は、ToDoアプリで扱うデータをMySQLへどのように保存するかを定めます。
+## 1. 構成と用語
 
-- DB（データベース）: アプリのデータを保存する仕組み
-- テーブル: データを表の形で保存する場所
-- カラム: テーブルの縦の項目（列）
-- レコード: やること1件分のデータ（行）
+DB（データの保存先）はMySQL 8.0、データベース名は `todoapp`、文字コードは日本語などを保存できる `utf8mb4` です。
 
-設計の根拠は `handout_app_spec.md` と `requirements.md` です。画面の配置や見た目は、別に作成する画面設計書で定めます。
+- テーブル：表の形の保存先。カラム：表の列。レコード：表の1行。
+- 主キー：各行を見分ける番号。外部キー：別の表とのつながりを示す制約。
+- `NULL`：値なし。既定値：値を指定しなかったときに使う値。
 
-## 2. 使用するデータベース
-
-| 項目 | 設計内容 |
-|---|---|
-| DB製品 | MySQL 8.0 |
-| データベース名 | `todoapp` |
-| テーブル数 | 1 |
-| テーブル名 | `todos` |
-| 1レコードの意味 | やること1件 |
-| 文字コード | `utf8mb4`（日本語などを保存できる文字コード） |
-
-## 3. テーブル概要
-
-| 論理名（人が読む名前） | 物理名（DBで使う名前） | 用途 |
+| テーブル | 1行の意味 | 用途 |
 |---|---|---|
-| やること | `todos` | やること、メモ、分類、期限、状態などを保存する |
+| `todos` | やること1件 | 名前・メモ・分類・優先度・期限・完了・削除の状態 |
+| `users` | ログイン用ユーザー1人 | ユーザー名とパスワードのハッシュなど |
+| `todo_attachments` | 添付ファイル1件の情報 | 所属するやること、元の名前、保存名、種類、容量 |
 
-本アプリは利用者1人で使用し、ログイン機能を持ちません。そのため、利用者を識別するカラムは設けません。
+利用者は1人です。`todos` にユーザーIDはなく、ログイン追加は複数人のデータ分離を意味しません。
 
-## 4. カラム設計
+## 2. todos
 
-| # | 項目 | カラム名 | データ型 | NULL | 既定値 | 制約・説明 |
-|---:|---|---|---|---|---|---|
-| 1 | ID | `id` | `BIGINT` | 不可 | 自動採番 | 主キー。レコードを見分ける番号。1から自動で増える |
-| 2 | やること | `title` | `VARCHAR(255)` | 不可 | なし | 255文字以内。空白だけの入力もアプリ側で不可とする |
-| 3 | メモ | `detail` | `VARCHAR(255)` | 可 | `NULL` | 255文字以内。未入力を許可する |
-| 4 | ジャンル | `category` | `VARCHAR(255)` | 不可 | なし | 指定された5種類のいずれかに限定する |
-| 5 | 優先度 | `priority` | `INT` | 不可 | `2` | `1`＝高、`2`＝中、`3`＝低 |
-| 6 | 期限 | `due_date` | `DATE` | 可 | `NULL` | 未入力を許可する |
-| 7 | 完了状態 | `completed` | `BOOLEAN` | 不可 | `FALSE` | `TRUE`＝完了、`FALSE`＝未完了 |
-| 8 | 登録日時 | `created_at` | `DATETIME` | 不可 | 現在日時 | レコードの登録時にMySQLが自動設定する |
-| 9 | 更新日時 | `updated_at` | `DATETIME` | 不可 | 現在日時 | 登録時にMySQLが設定し、更新時にも自動更新する |
-
-`NULL` は「値が入っていない状態」です。「NULL不可」は、必ず値を保存するという意味です。既定値は、値が指定されなかった場合に自動で使う値です。
-
-## 5. キーと制約
-
-- 主キー（各レコードを重複なく見分ける印）は `id` です。
-- `id` は `AUTO_INCREMENT`（保存するたびに番号を1ずつ自動で増やす仕組み）を使用します。
-- `category` は次の5種類だけを保存できます。
-  - `デザイン`
-  - `マーケティング`
-  - `プログラミング`
-  - `資格`
-  - `就職活動`
-- `priority` は `1`、`2`、`3` のいずれかだけを保存できます。
-- 外部キー（別テーブルとのつながりを示す設定）はありません。使用するテーブルが `todos` だけだからです。
-
-## 6. 要件とカラムの対応
-
-| 要件 | 対応カラム | 対応内容 | 根拠 |
+| 列 | 型 | NULL | 既定値・説明 |
 |---|---|---|---|
-| 1件を見分ける番号を自動で割り当てる | `id` | 主キー、自動採番、利用者は入力しない | `handout_app_spec.md` 2、`requirements.md` 5 |
-| やることの名前を保存する | `title` | 必須、255文字以内 | `handout_app_spec.md` 2・5-1、`requirements.md` 5・7 |
-| メモを保存する | `detail` | 任意、255文字以内 | `handout_app_spec.md` 2・5-1、`requirements.md` 5・7 |
-| ジャンルを5種類から選ぶ | `category` | 必須、5種類に限定 | `handout_app_spec.md` 2、`requirements.md` 5・7 |
-| 優先度を高・中・低で管理する | `priority` | 必須、1＝高・2＝中・3＝低、DBの既定値は2 | `handout_app_spec.md` 2・4・5-1、`requirements.md` 4.1・5・7 |
-| 期限を保存する | `due_date` | 任意の日付 | `handout_app_spec.md` 2・5-1、`requirements.md` 5・7 |
-| 完了・未完了を管理する | `completed` | 既定値は未完了。編集時に変更できる | `handout_app_spec.md` 2・4、`requirements.md` 4.1・4.3・5 |
-| 登録した日時を自動で記録する | `created_at` | 登録時にMySQLが現在日時を設定する | `handout_app_spec.md` 2、`requirements.md` 5 |
-| 最後に編集した日時を自動で記録する | `updated_at` | 登録時と更新時にMySQLが現在日時を設定する | `handout_app_spec.md` 2、`requirements.md` 5 |
-| 名前に入力語を含むデータを検索する | `title` | `title` の部分一致で絞り込む | `handout_app_spec.md` 5-4、`requirements.md` 4.5・8 |
-| ジャンルが一致するデータを検索する | `category` | `category` の完全一致で絞り込む | `handout_app_spec.md` 5-4、`requirements.md` 4.5・8 |
-| 期限が近い順・遠い順に並べる | `due_date` | `due_date` を昇順・降順で並べる | `handout_app_spec.md` 5-4、`requirements.md` 4.6・8 |
-| 登録・編集・削除のログに対象番号を残す | `id` | 操作したレコードの `id` をアプリのログへ出す | `handout_app_spec.md` 5-5、`requirements.md` 10 |
+| `id` | BIGINT | 不可 | 自動採番・主キー |
+| `title` | VARCHAR(255) | 不可 | やることの名前。アプリで必須・255文字以内を確認 |
+| `detail` | VARCHAR(255) | 可 | メモ。未入力を許可 |
+| `category` | VARCHAR(255) | 不可 | 決められた5種類 |
+| `priority` | INT | 不可 | 既定値2。1＝高、2＝中、3＝低 |
+| `due_date` | DATE | 可 | 期限。未入力を許可 |
+| `completed` | BOOLEAN | 不可 | 既定値FALSE（未完了） |
+| `deleted_at` | DATETIME | 可 | 既定値NULL。削除時の日時、復元時はNULL |
+| `created_at` | DATETIME | 不可 | 登録時に現在日時 |
+| `updated_at` | DATETIME | 不可 | 登録時と更新時に現在日時 |
 
-画面上の必須選択とDBの既定値は役割が異なります。登録画面では利用者に優先度を必ず選んでもらいますが、DB側では仕様どおり、値が渡されなかった場合の安全な既定値を `2`（中）とします。
+ジャンルはデザイン・マーケティング・プログラミング・資格・就職活動に限定します。ジャンルと優先度はDBのCHECK（決められた値だけを受け付ける制約）でも確認します。登録画面では両方を空欄から選択します。
 
-## 7. CREATE TABLE文（DDL）
+完了日時の `completed_at` はありません。完了状態は既存の `completed` だけで管理します。
 
-DDLは、テーブルの形を作るためのSQL命令です。次のSQLで `todos` テーブルを作成します。
+## 3. users
+
+| 列 | 型 | NULL | 既定値・説明 |
+|---|---|---|---|
+| `id` | BIGINT | 不可 | 自動採番・主キー |
+| `username` | VARCHAR(50) | 不可 | 重複不可。大文字小文字を区別する設定 |
+| `password` | VARCHAR(255) | 不可 | BCryptで作るハッシュ（元に戻せない変換結果）。原文は保存しない |
+| `role` | VARCHAR(20) | 不可 | 既定値USER |
+| `created_at` | TIMESTAMP | 不可 | 登録時に現在日時 |
+
+初回設定はユーザーが0人のときだけ許可し、アプリは最初のユーザーをID 1で登録します。ユーザー名は空白なし・50文字以内、パスワードは8文字以上かつUTF-8で72バイト以内で確認用入力と一致させます。これらの入力確認はアプリ側で行います。
+
+## 4. todo_attachmentsとファイル本体
+
+| 列 | 型 | NULL | 既定値・説明 |
+|---|---|---|---|
+| `id` | BIGINT | 不可 | 自動採番・主キー |
+| `todo_id` | BIGINT | 不可 | `todos.id` を参照する外部キー |
+| `original_filename` | VARCHAR(255) | 不可 | 利用者に表示・ダウンロードする元の名前 |
+| `stored_filename` | VARCHAR(80) | 不可 | 重複不可。UUID（重複しにくい識別子）を使った保存名 |
+| `content_type` | VARCHAR(100) | 不可 | ファイルの種類 |
+| `file_size` | BIGINT | 不可 | バイト単位の容量 |
+| `uploaded_at` | DATETIME | 不可 | 添付時に現在日時 |
+
+1件のやることに複数の添付情報が対応します。`todo_id` に検索用のインデックス（索引）があります。ファイル本体はDBに格納せず、Dockerでは `/app/uploads` に置き、`fw-upload-data` ボリュームに保存します。PCから直接起動する場合の既定先は `./uploads` で、`TODO_UPLOAD_DIR` で変更できます。
+
+1ファイル10MBまで、1回1ファイルです。許可する種類はPNG・JPEG・GIF・WebP・PDF・UTF-8のTXT/CSV・マクロなしのdocx/xlsx/pptxで、名前と中身を確認します。保存先は公開フォルダーから分離し、認証されたダウンロード処理を通して取得します。
+
+## 5. 登録・更新・削除・復元
+
+| 操作 | 保存内容 |
+|---|---|
+| 登録 | 名前・メモ・ジャンル・優先度・期限を保存。完了は未指定ならFALSE。番号と日時は自動設定 |
+| 編集 | 入力5項目と完了状態を更新。完了日時は記録しない |
+| 完了ボタン | 未完了かつ未削除の場合だけ `completed=TRUE` に更新 |
+| やることの削除 | `deleted_at=CURRENT_TIMESTAMP`。行と添付は残す（論理削除） |
+| やることの復元 | `deleted_at=NULL` に戻す。完了状態は変更しない |
+| 添付自体の削除 | 添付情報の行とファイル本体を消す（物理削除）。復元しない |
+
+通常の一覧・件数・CSV・API・カレンダー・MCP・番号指定での取得は `deleted_at IS NULL` の条件で削除済みを除外します。削除済み一覧の件数と取得だけは `deleted_at IS NOT NULL` を使います。親が削除済みの間は添付の取得・追加・削除もできません。
+
+一覧は同じ検索条件で件数を数え、`LIMIT 10 OFFSET ...` で必要なページだけ取得します。名前は部分一致、ジャンルは完全一致です。期限で並べ、同期限ではIDの昇順にします。CSVは同じ条件ですが件数制限を付けません。通常の `/api/todos` とMCPの一覧は完了済みを含み、期間指定があると期限のない項目を除外します。
+
+メモの未入力はNULLまたは空文字として扱える列です。期限の未入力はNULLです。検索語・ページ番号・天気・祝日はDBへ保存しません。
+
+## 6. 初期化と既存データ
+
+- 作成用SQLは次章の3ファイルです。登録済みのユーザー名・パスワードや、固定のやること5件を同梱しません。
+- Dockerの `initdb` は、DBの保存領域を初めて作るときだけ実行されます。
+- 既存DBには、SQLファイルを変更しただけでは反映されません。既存データを維持する構造変更と、新規作成を区別します。
+- 本書更新のためのDB初期化やデータの追加・削除は行いません。
+
+## 7. 現在のテーブル作成SQL
+
+以下は現在の `initdb` と同じ内容です。既存DBへそのまま再実行する手順ではありません。
+
+### `initdb/01_create_table.sql`
 
 ```sql
 CREATE TABLE todos (
@@ -92,6 +104,7 @@ CREATE TABLE todos (
     priority INT NOT NULL DEFAULT 2,
     due_date DATE NULL,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
@@ -111,29 +124,30 @@ CREATE TABLE todos (
   COLLATE=utf8mb4_0900_ai_ci;
 ```
 
-- `CHECK` は、決められた値以外を保存させない確認ルールです。
-- `CURRENT_TIMESTAMP` は、保存した時点の現在日時です。
-- `ON UPDATE CURRENT_TIMESTAMP` は、レコードを更新したときに更新日時を自動で入れ直す設定です。
-- `InnoDB` は、MySQLでデータを安全に保存・更新するための標準的な保存方式です。
+### `initdb/02_create_users.sql`
 
-## 8. 登録・更新・削除時の扱い
+```sql
+CREATE TABLE users (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
+```
 
-| 操作 | 主なカラムの扱い |
-|---|---|
-| 登録 | `title`、`detail`、`category`、`priority`、`due_date` を受け取る。`id`、`created_at`、`updated_at` はMySQLが設定し、`completed` は未指定なら未完了になる |
-| 編集 | 登録時の5項目と `completed` を更新する。`updated_at` はMySQLが自動更新する |
-| 削除 | `id` で対象を特定し、そのレコードを物理削除（DBから実際に消すこと）する |
+### `initdb/03_create_todo_attachments.sql`
 
-削除したデータを戻す機能は対象外のため、削除済みを示すカラムは設けません。また、完了した日時を記録する機能も対象外のため、完了日時のカラムは設けません。
-
-## 9. インデックス設計
-
-インデックスは、データを探しやすくする索引です。今回は小規模な1人用アプリであり、主キー `id` のインデックスだけを使用します。検索や並び替え用の追加インデックスは、データ量や速度上の問題が確認された場合に検討します。
-
-## 10. 設計上の補足
-
-- `title` の空白だけの入力や文字数は、保存前にアプリ側でも確認します。DBのデータ型でも最大255文字に制限します。
-- `detail` と `due_date` は任意項目なので、未入力時は `NULL` とします。
-- 操作ログはアプリの動作記録として出力し、`todos` テーブル内には保存しません。テーブルは1つだけという前提を守るためです。
-- 一覧のメッセージや検索条件は一時的な画面情報であり、`todos` テーブルには保存しません。
-- 画面の構造や見た目は本書の対象外です。
+```sql
+CREATE TABLE todo_attachments (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    todo_id BIGINT NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    stored_filename VARCHAR(80) NOT NULL UNIQUE,
+    content_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+    uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_attachments_todo (todo_id),
+    CONSTRAINT fk_attachments_todo FOREIGN KEY (todo_id) REFERENCES todos (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+```
