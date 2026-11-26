@@ -27,6 +27,38 @@
         </choose>
     </select>
 
+    <sql id="listFilters">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="!showCompleted">
+                AND completed = false
+            </if>
+        </where>
+    </sql>
+
+    <select id="countForList" resultType="long">
+        SELECT COUNT(*) FROM todos
+        <include refid="listFilters" />
+    </select>
+
+    <select id="searchPage" resultType="com.example.todoapp.Todo">
+        SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
+        FROM todos
+        <include refid="listFilters" />
+        ORDER BY due_date
+        <choose>
+            <when test="order == 'desc'">DESC</when>
+            <otherwise>ASC</otherwise>
+        </choose>
+        , id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
     <select id="findById" resultType="com.example.todoapp.Todo">
         SELECT id, title, detail, category, priority, due_date, completed, created_at, updated_at
         FROM todos
